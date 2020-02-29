@@ -12,3 +12,10 @@ type Resource struct {
 	lastSize   int64
 }
 
+func NewResource(file string) Resource {
+	return Resource{
+		path:       file,
+		lastUpdate: time.Now(),
+		lastSize:   0,
+	}
+}
