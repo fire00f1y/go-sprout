@@ -51,6 +51,7 @@ func Watch(ctx context.Context,
 				}
 			case <-ctx.Done():
 				{
+					close(ch)
 					return
 				}
 			}
