@@ -5,6 +5,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -65,6 +66,63 @@ func TestWriteUpdate(t *testing.T) {
 
 			if w.String() != test.text {
 				t.Errorf("expected %s; got %s\n", test.text, w.String())
+			}
+		})
+	}
+}
+
+type container struct {
+	data interface{}
+	mu   *sync.Mutex
+}
+
+func (c container) Pointer() interface{} {
+	return c.data
+}
+
+func (c container) Lock() {
+	c.mu.Lock()
+}
+
+func (c container) Unlock() {
+	c.mu.Unlock()
+}
+
+func TestUpdateFromJson(t *testing.T) {
+	type jsonObject struct {
+		Name   string `json:"name"`
+		Number int    `json:"number"`
+	}
+
+	tests := []struct {
+		j    string
+		name string
+		n    int
+	}{
+		{j: `{"name":"test","number":1}`, name: "test", n: 1},
+		{j: "this is not json, to make sure no panic happens", name: "", n: 0},
+	}
+
+	for i, test := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			c := container{
+				data: &jsonObject{},
+				mu:   &sync.Mutex{},
+			}
+
+			r := strings.NewReader(test.j)
+			f := UpdateFromJson(c)
+			f(r)
+
+			jj, ok := c.data.(*jsonObject)
+			if !ok {
+				t.Errorf("failed to type cast the container\n")
+				return
+			}
+
+			if jj.Name != test.name || jj.Number != test.n {
+				t.Errorf("decoded object does not match expected\n")
+				return
 			}
 		})
 	}

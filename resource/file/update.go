@@ -34,7 +34,9 @@ func (r Resource) Refresh(_ context.Context, updateFunc func(io.Reader), errorHa
 	}
 	defer func() {
 		e := f.Close()
-		errorHandler(e)
+		if e != nil {
+			errorHandler(e)
+		}
 	}()
 
 	updateFunc(f)

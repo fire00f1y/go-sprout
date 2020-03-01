@@ -48,3 +48,13 @@ type Resource struct {
 	lastGeneration     int64
 	contentType        string
 }
+
+func NewResource(bucket, blob string) Resource {
+	return Resource{
+		bucket:             bucket,
+		prefix:             blob,
+		lastMetageneration: 0,
+		lastGeneration:     0,
+		contentType:        "",
+	}
+}

@@ -1,8 +1,10 @@
 package gosprout
 
 import (
+	"encoding/json"
 	"io"
 	"log"
+	"sync"
 )
 
 var (
@@ -14,6 +16,11 @@ var (
 		log.Printf("[gosprout] %v\n", e)
 	}
 )
+
+type Serializer interface {
+	Pointer() interface{}
+	sync.Locker
+}
 
 // Override the default error behavior. Be default, this will use the standard log.Printf.
 func SetErrorHandler(errorHandler ErrorHandler) {
@@ -27,6 +34,19 @@ func WriteUpdate(w io.Writer) UpdateFunction {
 		_, err := io.Copy(w, r)
 		if err != nil && DefaultErrorHandler != nil {
 			DefaultErrorHandler(err)
+		}
+	}
+}
+
+// Provided a container object which is able to be locked, this function
+// will lock, update the data in the underlying pointer, and unlock. The
+// locking is necessary so this can be done without worry about concurrent access panics.
+func UpdateFromJson(s Serializer) UpdateFunction {
+	return func(r io.Reader) {
+		p := s.Pointer()
+		e := json.NewDecoder(r).Decode(p)
+		if e != nil {
+			log.Printf("[gosprout] failed to decode json object: %v\n", e)
 		}
 	}
 }

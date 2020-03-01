@@ -12,12 +12,18 @@ package resource
 import (
 	"context"
 	"errors"
+	"github.com/fire00f1y/go-sprout/resource/file"
+	"github.com/fire00f1y/go-sprout/resource/gcs"
 	"io"
+	"os"
+	"strings"
 )
 
 var (
-	UnknownTypeError    = errors.New("[gosprout] cannot derive resource type from path")
-	NotImplementedError = errors.New("[gosprout] this is not implemented yet")
+	UnknownTypeError       = errors.New("[gosprout] cannot derive resource type from path")
+	NotImplementedError    = errors.New("[gosprout] this is not implemented yet")
+	missingProtocolError   = errors.New("[gosprout] missing protocol scheme")
+	malformedProtocolError = errors.New("[gosprout] improper scheme format")
 )
 
 // The Resource needs to is a data source
@@ -38,5 +44,58 @@ type Refresher interface {
 }
 
 func CreateResource(path string) (Resource, error) {
-	return nil, NotImplementedError
+	s, p, e := getscheme(path)
+	if e != nil {
+		return nil, e
+	}
+	switch s {
+	case "gs":
+		{
+			i := strings.Index(p, "/")
+			return gcs.NewResource(path[:i], path[i:]), nil
+		}
+	case "file":
+		{
+			return file.NewResource(p), nil
+		}
+	default:
+		{
+			return nil, UnknownTypeError
+		}
+	}
+}
+
+// This is shamelessly stolen from the standard library since it was not exported.
+func getscheme(rawurl string) (scheme, path string, err error) {
+	for i := 0; i < len(rawurl); i++ {
+		c := rawurl[i]
+		switch {
+		case 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z':
+		// do nothing
+		case '0' <= c && c <= '9' || c == '+' || c == '-':
+			if i == 0 {
+				return "", stripPrecedingSlashes(rawurl), nil
+			}
+		case c == ':':
+			if i == 0 {
+				return "", "", missingProtocolError
+			}
+			return rawurl[:i], stripPrecedingSlashes(rawurl[i+1:]), nil
+		case c == os.PathSeparator || c == '.':
+			// This will only work if the it is not running on windows
+			return "file", rawurl, nil
+		default:
+			// we have encountered an invalid character,
+			// so there is no valid scheme
+			return "", rawurl, nil
+		}
+	}
+	return "", stripPrecedingSlashes(rawurl), nil
+}
+
+func stripPrecedingSlashes(s string) string {
+	if strings.HasPrefix(s, "/") {
+		return stripPrecedingSlashes(strings.TrimPrefix(s, "/"))
+	}
+	return s
 }
