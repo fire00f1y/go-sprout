@@ -1,6 +1,7 @@
 package file
 
 import (
+	"os"
 	"time"
 )
 
@@ -12,10 +13,15 @@ type Resource struct {
 	lastSize   int64
 }
 
-func NewResource(file string) Resource {
+func NewResource(file string) (Resource, error) {
+	info, err := os.Stat(file)
+	if err != nil {
+		return Resource{}, err
+	}
+
 	return Resource{
 		path:       file,
-		lastUpdate: time.Now(),
-		lastSize:   0,
-	}
+		lastUpdate: info.ModTime(),
+		lastSize:   info.Size(),
+	}, err
 }

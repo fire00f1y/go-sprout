@@ -17,7 +17,10 @@ func main() {
 	if e != nil {
 		log.Fatalf("error creating file: %v\n", e)
 	}
-	res := file.NewResource(fileName)
+	res, e := file.NewResource(fileName)
+	if e != nil {
+		log.Fatalf("error creating file resource: %v\n", e)
+	}
 
 	// Remove file after the sample
 	defer func() {

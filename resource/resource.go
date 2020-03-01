@@ -52,11 +52,11 @@ func CreateResource(path string) (Resource, error) {
 	case "gs":
 		{
 			i := strings.Index(p, "/")
-			return gcs.NewResource(path[:i], path[i:]), nil
+			return gcs.NewResource(path)
 		}
 	case "file":
 		{
-			return file.NewResource(p), nil
+			return file.NewResource(p)
 		}
 	default:
 		{

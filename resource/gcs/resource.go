@@ -5,6 +5,7 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"errors"
+	"strings"
 	"sync"
 )
 
@@ -49,12 +50,29 @@ type Resource struct {
 	contentType        string
 }
 
-func NewResource(bucket, blob string) Resource {
+func NewResource(path string) (Resource, error) {
+	if c == nil {
+		e := initClient(context.Background())
+		if e != nil {
+			return Resource{}, e
+		}
+	}
+
+	i := strings.Index(path, "/")
+	bucket := path
+	if i > 0 {
+		bucket = path[:i]
+	}
+	blob := ""
+	if i < len(path)-1 && i > 0 {
+		blob = path[i+1:]
+	}
+
 	return Resource{
 		bucket:             bucket,
 		prefix:             blob,
 		lastMetageneration: 0,
 		lastGeneration:     0,
 		contentType:        "",
-	}
+	}, nil
 }
